@@ -5,6 +5,10 @@ import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import logger from "./utils/logger";
 import { authRoutes } from "./modules/auth/auth.routes";
+import { expenseRoutes } from "./modules/expenses/expense.routes";
+import { categoryRoutes } from "./modules/categories/category.routes";
+import { cachePlugin } from "./plugins/cache.plugin";
+import { rateLimitPlugin } from "./plugins/rate-limit.plugin";
 
 /**
  * Build the Elysia application with CORS and Swagger docs.
@@ -100,6 +104,8 @@ export function createApp() {
         ],
       })
     )
+    .use(cachePlugin)
+    .use(rateLimitPlugin)
     .use(
       swagger({
         path: "/docs",
@@ -116,6 +122,8 @@ export function createApp() {
               name: "Authentication",
               description: "User authentication endpoints",
             },
+            { name: "Expenses", description: "Expense management endpoints" },
+            { name: "Categories", description: "Category management endpoints" },
           ],
         },
       })
@@ -127,6 +135,8 @@ export function createApp() {
       detail: { tags: ["system"], summary: "Health check" },
     })
     .use(authRoutes)
+    .use(expenseRoutes)
+    .use(categoryRoutes)
     .listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 
   return app;
