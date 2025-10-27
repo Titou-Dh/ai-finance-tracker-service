@@ -7,6 +7,7 @@ import logger from "./utils/logger";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { expenseRoutes } from "./modules/expenses/expense.routes";
 import { categoryRoutes } from "./modules/categories/category.routes";
+import { aiRoutes } from "./modules/ai/ai.routes";
 import { cachePlugin } from "./plugins/cache.plugin";
 import { rateLimitPlugin } from "./plugins/rate-limit.plugin";
 
@@ -117,7 +118,7 @@ export function createApp() {
           },
           tags: [
             { name: "system", description: "System and health endpoints" },
-            { name: "ai", description: "AI processing endpoints" },
+            { name: "AI Analysis", description: "AI-powered expense analysis and suggestions" },
             {
               name: "Authentication",
               description: "User authentication endpoints",
@@ -137,6 +138,7 @@ export function createApp() {
     .use(authRoutes)
     .use(expenseRoutes)
     .use(categoryRoutes)
+    .use(aiRoutes)
     .listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 
   return app;

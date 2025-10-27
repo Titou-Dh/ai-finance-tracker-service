@@ -10,7 +10,7 @@ interface AIRequest {
 
 export async function callOpenRouter(
   messages: AIRequest["messages"],
-  model = "gpt-4o-mini"
+  model = "mistralai/mistral-7b-instruct:free"
 ) {
   try {
     const res = await axios.post(
