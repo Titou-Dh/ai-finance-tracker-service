@@ -8,10 +8,85 @@ import { authRoutes } from "./modules/auth/auth.routes";
 
 /**
  * Build the Elysia application with CORS and Swagger docs.
- * Returned value is a Node http.Server for supertest compatibility.
  */
 export function createApp() {
+  const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+
   const app = new Elysia({ name: "ai-finance-tracker-api" })
+    .onRequest(({ request, set }) => {
+      const startTime = Date.now();
+      const method = request.method;
+      const url = request.url;
+      const userAgent = request.headers.get("user-agent") || "unknown";
+      const ip =
+        request.headers.get("x-forwarded-for") ||
+        request.headers.get("x-real-ip") ||
+        "unknown";
+
+      logger.info(
+        {
+          method,
+          url,
+          userAgent,
+          ip,
+          timestamp: new Date().toISOString(),
+          requestId: crypto.randomUUID(),
+        },
+        `Incoming request: ${method} ${url}`
+      );
+
+      (request as any).startTime = startTime;
+    })
+
+    .onAfterHandle(({ request, set }) => {
+      const startTime = (request as any).startTime;
+      const duration = startTime ? Date.now() - startTime : 0;
+      const method = request.method;
+      const url = request.url;
+      const status = set.status || 200;
+
+      logger.info(
+        {
+          method,
+          url,
+          status,
+          duration: `${duration}ms`,
+          timestamp: new Date().toISOString(),
+        },
+        `Request completed: ${method} ${url} - ${status} (${duration}ms)`
+      );
+    })
+
+    .onError(({ error, request, set }) => {
+      const method = request.method;
+      const url = request.url;
+      const status = set.status || 500;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      logger.error(
+        {
+          method,
+          url,
+          status,
+          error: errorMessage,
+          stack: errorStack,
+          timestamp: new Date().toISOString(),
+        },
+        `Request error: ${method} ${url} - ${status}: ${errorMessage}`
+      );
+
+      return {
+        success: false,
+        message: "Internal server error",
+        error:
+          process.env.NODE_ENV === "development"
+            ? errorMessage
+            : "Something went wrong",
+      };
+    })
+
     .use(
       cors({
         origin: (origin) => true,
@@ -37,7 +112,10 @@ export function createApp() {
           tags: [
             { name: "system", description: "System and health endpoints" },
             { name: "ai", description: "AI processing endpoints" },
-            { name: "Authentication", description: "User authentication endpoints" },
+            {
+              name: "Authentication",
+              description: "User authentication endpoints",
+            },
           ],
         },
       })
@@ -48,46 +126,8 @@ export function createApp() {
     .get("/health", () => ({ status: "ok" }), {
       detail: { tags: ["system"], summary: "Health check" },
     })
-    .use(authRoutes);
+    .use(authRoutes)
+    .listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 
-  const nodeListener: http.RequestListener = async (req, res) => {
-    try {
-      const url = new URL(
-        req.url ?? "/",
-        `http://${req.headers.host ?? "localhost"}`
-      );
-      const headers = new Headers();
-      for (const [k, v] of Object.entries(req.headers)) {
-        if (Array.isArray(v)) v.forEach((vv) => headers.append(k, String(vv)));
-        else if (v !== undefined) headers.set(k, String(v));
-      }
-
-      const method = (req.method ?? "GET").toUpperCase();
-      const hasBody = !(method === "GET" || method === "HEAD");
-      const body = hasBody
-        ? (Readable.toWeb(req) as unknown as ReadableStream)
-        : undefined;
-
-      const request = new Request(url, { method, headers, body });
-      const handler: (r: Request) => Promise<Response> =
-        (app as any).handle?.bind(app) ?? (app as any).fetch?.bind(app);
-      const response = await handler(request);
-
-      res.writeHead(
-        response.status,
-        Object.fromEntries(response.headers.entries())
-      );
-      const buff = Buffer.from(await response.arrayBuffer());
-      res.end(buff);
-    } catch (err) {
-      logger.error({ err }, "Request bridge error");
-      res.statusCode = 500;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: "Internal Server Error" }));
-    }
-  };
-
-  return http.createServer(nodeListener);
+  return app;
 }
-
-export default createApp;
