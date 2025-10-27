@@ -1,0 +1,25 @@
+# Redis Dockerfile
+FROM redis:7-alpine
+
+# Set environment variables
+ENV REDIS_PASSWORD=""
+ENV REDIS_DB=0
+
+# Create data directory
+RUN mkdir -p /data && \
+    chown redis:redis /data
+
+# Copy custom redis configuration
+COPY redis.conf /usr/local/etc/redis/redis.conf
+
+# Expose Redis port
+EXPOSE 6379
+
+# Switch to redis user
+USER redis
+
+# Set working directory
+WORKDIR /data
+
+# Start Redis server
+CMD ["redis-server", "/usr/local/etc/redis/redis.conf"]

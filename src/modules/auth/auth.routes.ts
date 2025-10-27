@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { AuthService } from "./auth.service";
 import { CookieManager } from "../../utils/cookie-manager";
+import { CategoryService } from "../categories/category.service";
 import logger from "../../utils/logger";
 import { authPlugin } from "../../plugins/auth.plugin";
 import {
@@ -147,7 +148,9 @@ export const authRoutes = new Elysia({
 
         if (session) {
           // Supabase expires_at is in seconds, not milliseconds
-          const expiresAt = session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000;
+          const expiresAt = session.expires_at
+            ? session.expires_at * 1000
+            : Date.now() + 3600000;
           const expiresIn = Math.floor((expiresAt - Date.now()) / 1000);
 
           logger.debug(
@@ -195,6 +198,44 @@ export const authRoutes = new Elysia({
             },
             "Cookies set successfully"
           );
+        }
+
+        if (user) {
+          logger.info(
+            {
+              requestId,
+              operation: "register",
+              userId: user.id,
+              timestamp: new Date().toISOString(),
+            },
+            "Creating default categories for new user"
+          );
+
+          const { success, error } =
+            await CategoryService.createDefaultCategories(user.id);
+
+          if (!success) {
+            logger.warn(
+              {
+                requestId,
+                operation: "register",
+                userId: user.id,
+                error,
+                timestamp: new Date().toISOString(),
+              },
+              "Failed to create default categories, but registration continues"
+            );
+          } else {
+            logger.info(
+              {
+                requestId,
+                operation: "register",
+                userId: user.id,
+                timestamp: new Date().toISOString(),
+              },
+              "Default categories created successfully"
+            );
+          }
         }
 
         return createResponse(true, "User registered successfully", {
@@ -311,7 +352,9 @@ export const authRoutes = new Elysia({
 
         // Set cookies using proper .set() method with configuration
         // Supabase expires_at is in seconds, not milliseconds
-        const expiresAt = session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000;
+        const expiresAt = session.expires_at
+          ? session.expires_at * 1000
+          : Date.now() + 3600000;
         const expiresIn = Math.floor((expiresAt - Date.now()) / 1000);
 
         logger.debug(
@@ -884,7 +927,9 @@ export const authRoutes = new Elysia({
 
         // Set new cookies using proper .set() method with configuration
         // Supabase expires_at is in seconds, not milliseconds
-        const expiresAt = session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000;
+        const expiresAt = session.expires_at
+          ? session.expires_at * 1000
+          : Date.now() + 3600000;
         const expiresIn = Math.floor((expiresAt - Date.now()) / 1000);
 
         cookie.access_token.set({
