@@ -6,7 +6,8 @@
   "description": "An AI-powered personal finance tracker API built with Bun and Supabase.",
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts"
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir dist"
   },
   "devDependencies": {
     "@types/bun": "latest",
