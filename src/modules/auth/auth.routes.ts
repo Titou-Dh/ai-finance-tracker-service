@@ -92,7 +92,7 @@ export const authRoutes = new Elysia({
       );
 
       try {
-        const { user, session, error } = await AuthService.register(
+        const { user, session, error, dbUser } = await AuthService.register(
           registrationData
         );
 
@@ -147,7 +147,6 @@ export const authRoutes = new Elysia({
         set.status = 201;
 
         if (session) {
-          // Supabase expires_at is in seconds, not milliseconds
           const expiresAt = session.expires_at
             ? session.expires_at * 1000
             : Date.now() + 3600000;
@@ -200,26 +199,26 @@ export const authRoutes = new Elysia({
           );
         }
 
-        if (user) {
+        if (dbUser) {
           logger.info(
             {
               requestId,
               operation: "register",
-              userId: user.id,
+              userId: dbUser.id,
               timestamp: new Date().toISOString(),
             },
             "Creating default categories for new user"
           );
 
           const { success, error } =
-            await CategoryService.createDefaultCategories(user.id);
+            await CategoryService.createDefaultCategories(dbUser.id);
 
           if (!success) {
             logger.warn(
               {
                 requestId,
                 operation: "register",
-                userId: user.id,
+                userId: dbUser.id,
                 error,
                 timestamp: new Date().toISOString(),
               },
@@ -230,7 +229,7 @@ export const authRoutes = new Elysia({
               {
                 requestId,
                 operation: "register",
-                userId: user.id,
+                userId: dbUser.id,
                 timestamp: new Date().toISOString(),
               },
               "Default categories created successfully"

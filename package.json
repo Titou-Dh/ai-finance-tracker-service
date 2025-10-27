@@ -22,6 +22,7 @@
     "@elysiajs/cors": "^1.0.2",
     "@elysiajs/swagger": "^1.0.3",
     "@supabase/supabase-js": "^2.76.1",
+    "axios": "^1.12.2",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.7",
     "elysia": "^1.1.17",
